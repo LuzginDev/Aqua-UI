@@ -4,37 +4,75 @@ import "../../../theme"
 Item {
     id: root
     property string iconSource: ""
-    property real value: 0.5 // 0.0 - 1.0
+    property real value: 0 
+    property bool interactive: true
     
-    // Для биндинга изменений (если двигаем мышкой)
-    // В данном примере пока только отображение, но можно добавить MouseArea для drag
-    
-    height: 28
+    signal moved(real newValue)
 
-    // Фон (трек)
+    height: 28
+    implicitWidth: 200
+
     Rectangle {
         anchors.fill: parent
         radius: height / 2
         color: Colors.isDark ? Qt.rgba(1,1,1, 0.15) : Qt.rgba(0,0,0, 0.1)
         
-        // Заполненная часть
         Rectangle {
-            width: parent.width * root.value
             height: parent.height
             radius: parent.radius
+            width: Math.max(parent.height, parent.width * root.value)
             color: Colors.textPrimary
             
-            Behavior on width { NumberAnimation { duration: 150; easing.type: Easing.OutCirc } }
+            Behavior on width { 
+                enabled: !mouseArea.pressed
+                NumberAnimation { duration: 150; easing.type: Easing.OutCirc } 
+            }
         }
     }
 
-    // Иконка внутри
     Image {
         source: root.iconSource
         width: 16; height: 16
         anchors.left: parent.left
         anchors.leftMargin: 8
         anchors.verticalCenter: parent.verticalCenter
-        opacity: 0.8
+        opacity: root.value > 0.1 ? 0 : 1 
+        Behavior on opacity { NumberAnimation { duration: 150 } }
+        
+        ColorOverlay {
+            anchors.fill: parent
+            source: parent
+            color: Colors.textSecondary
+            visible: !root.value > 0.1
+        }
+    }
+    
+    Image {
+        source: root.iconSource
+        width: 16; height: 16
+        anchors.left: parent.left
+        anchors.leftMargin: 8
+        anchors.verticalCenter: parent.verticalCenter
+        opacity: root.value > 0.1 ? 1 : 0
+        
+        ColorOverlay {
+            anchors.fill: parent
+            source: parent
+            color: Colors.isDark ? "black" : "white"
+        }
+    }
+
+    MouseArea {
+        id: mouseArea
+        anchors.fill: parent
+        enabled: root.interactive
+        
+        function updateValue(mouseX) {
+            var val = Math.max(0, Math.min(1, mouseX / width))
+            root.moved(val)
+        }
+
+        onPressed: (mouse) => updateValue(mouse.x)
+        onPositionChanged: (mouse) => updateValue(mouse.x)
     }
 }
